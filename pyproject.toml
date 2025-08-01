@@ -1,0 +1,28 @@
+[project]
+name = "Cabinet"
+version = "0.2.0"
+description = "Handles Cabinets LEDs based on tag location"
+authors = [
+  { name = "Josh Anderson", email = "janderson@alltraq.com" }
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "requests >=2.32",
+  "numpy >=1.28",
+  "pytest >=8.4.1",
+  "toml >= 0.10.2"
+  ]
+
+[project.optional-dependencies]
+dev = ["black", "flake8", "mypy"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
