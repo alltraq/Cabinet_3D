@@ -1,0 +1,59 @@
+{
+    "version": 1, 
+    "disable_existing_loggers": false, 
+    "formatters": {
+        "simple": {
+            "format": "%(levelname)s: %(message)s"
+        }, 
+        "detailed": {
+            "format":"[%(levelname)s|%(module)s|L%(lineno)d] %(asctime)s: %(message)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S%z"  
+        }, 
+        "geo": { 
+            "format":"%(asctime)s, %(message)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S%z"  
+        }
+    },
+    "filters": {
+        "app_only": {
+            "name":"app"
+        }
+    },
+    "handlers": {
+        "stdout": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "log/my_app.log"
+        },
+        "rotatingFile": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "geo",
+            "filename": "log/my_app.log",
+            "maxBytes": 100000000,
+            "backupCount": 5
+        }
+    }, 
+    "loggers": {
+        "root": {
+            "level": "INFO",
+            "handlers": [
+                "rotatingFile"
+            ]
+        },
+        "app": {
+            "level": "DEBUG",
+            "handlers": [
+                "stdout",
+                "rotatingFile"
+            ]
+        }
+    }
+}
+
