@@ -6,16 +6,17 @@ cabinets:
     zone: "zone_1"
     shelf_height: 1.5
     shelf_width: 2.0
+    proximity_threshold: 1.5
   - cabinet_controller_id: 2345
     # Middle of bottom shelf. Coordinates in feet
     location: (x, y, z)
     zone: "zone_1"
     shelf_height: 1.5
     shelf_width: 2.0
+    proximity_threshold: 1.5
 
 
-# Proximity threshold in meters
-proximity_threshold: 1.5
+
 
 # LED color codes
 led_colors:
@@ -29,7 +30,7 @@ led_timeout: 5
 
 # Network settings
 network:
-  switch_port: 9000
-  rfid_port: 9001
+  geotraqr_address: 20.188.90.124
+  cmd_port: 9001
   led_controller_ip: "192.168.1.100"
   led_controller_port: 9100

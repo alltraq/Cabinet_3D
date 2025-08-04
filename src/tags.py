@@ -52,7 +52,7 @@ class TagLoc():
             self.ts.append(int(msg[0]))
             self.x.append(float(msg[13]))
             self.y.append(float(msg[14]))
-            self.z.append(float(msg[15]))9
+            self.z.append(float(msg[15]))
             self.zone.append(msg[4])
             self.motion.append(bool(msg[3]))
         except Exception as e:
