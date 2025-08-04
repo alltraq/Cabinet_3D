@@ -30,7 +30,7 @@ Sent when a light switch on a shelf is activated.
 ### Example
 
 ```
-SWITCH,2,2025-07-24T14:15:22Z\r\n
+123456,SEN0,25001,LTSW,2,1\r\n
 ```
 
 
@@ -38,11 +38,11 @@ SWITCH,2,2025-07-24T14:15:22Z\r\n
 | Position | Field Name | Type   | Description                    |
 |----------|------------|--------|--------------------------------|
 | 1        | `timestamp`| int    | Milliseconds UTC timestamp     |
-| 1        | `"SEN0"`   | string | Message type identifier        |
-| 2        | `Cabinet Controller ID` | int    | ID of the cabinet controller     |
-| 1        | `"LTSW"` | string | Message type identifier        |
-| 2        | `Shelf Number` | int    | Shlef identifier 1-6    |
-| 2        | `State` | int    | 1-Beam Broken,  0-Beam Unbroken    |
+| 2        | `"SEN0"`   | string | Message type identifier        |
+| 3        | `Cabinet Controller ID` | int    | ID of the cabinet controller     |
+| 4        | `"LTSW"` | string | Message type identifier        |
+| 5        | `Shelf Number` | int    | Shlef identifier 1-6    |
+| 6        | `State` | bool    | 1-Beam Broken,  0-Beam Unbroken    |
 
 ---
 
