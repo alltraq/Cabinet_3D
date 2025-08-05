@@ -34,10 +34,12 @@ class Cabinet:
         self.light_switch_states = [False] * 6  # Assuming 6 shelves
         self.light_switch_events = 0 # Indicates new light switch event
 
+
+
     def store_light_switch_state(self, shelf_index, state):
         """Update the light switch state for a given shelf."""
         if 0 <= shelf_index < len(self.light_switch_states):
-            self.light_switch_states[shelf_index] = state
+            self.light_switch_states[shelf_index] = state == 1
             self.light_switch_events |= (1 << shelf_index)
             # send light shelf led msg
 
@@ -47,11 +49,12 @@ class Cabinet:
         msg=f'RCVPRM, {self.id}, {param}={leds}\r\n'
         self.cmd_conn(msg) # add a callback
         logger.info(f"Send: {msg}")
+
     
     def add_ltsw_msg(self, msg: Geomsg):
         """Process a light switch message.
         msg format: ['ts':int, 'msgtype':str, 'Controller ID':int, 
-                     'Sensor Type': str, 'state':bool] """
+                     'Sensor Type': str, 'shelf number': int, 'state':bool] """
         shelf_number = int(msg.fmsg[4])
         sw_state = int(msg.fmsg[5])
         self.store_light_switch_state(shelf_number-1, sw_state)
@@ -86,13 +89,13 @@ class Cabinet:
 class Cluster:
     """ A Cluster of Cabinet objects.  It is used to manage multiple cabinets.
         Route LTSW message to the appropriate cabinet. """
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, send_fnc: Callable[[str], None]):
         """ create a Cabinet object for each cabinet in the config """
         self.cabinets = {}
         self.ltsw_path = {}
         for cabinet in config.get('cabinets', []):
             cabinet_id = cabinet.get('cabinet_controller_id', None)
-            self.cabinets[cabinet_id] = Cabinet(cabinet_id, cabinet)
+            self.cabinets[cabinet_id] = Cabinet(cabinet, send_fnc=send_fnc)
             self.ltsw_path[cabinet_id] = self.cabinets[cabinet_id].add_ltsw_msg
 
     def add_ltsw_msg(self, msg: Geomsg):
