@@ -2,18 +2,21 @@
 cabinets:
   - cabinet_controller_id: 25000
     # Middle of bottom shelf. Coordinates in feet
-    location: (0, 0, 0)
-    zone: "zone_A"
-    shelf_height: 1.5
-    shelf_width: 2.0
-    proximity_threshold: 1.5
+    location: (87.42, 13.0, 0.396)
+    zone: "Zone1"
+    shelf_height: 1.0
+    shelf_width: 2.66
+    height_proximity_threshold: 1.5
+    width_proximity_threshold: 0.5
   - cabinet_controller_id: 25001
+    # Bottom of bottom shelf. Coordinates in feet
     # Middle of bottom shelf. Coordinates in feet
-    location: (0, 0, 0)
-    zone: "zone_B"
-    shelf_height: 1.5
-    shelf_width: 2.0
-    proximity_threshold: 1.5
+    location: (93.0, 13.0, 0.396)
+    zone: "Zone2"
+    shelf_height: 1.0
+    shelf_width: 2.66
+    height_proximity_threshold: 1.5
+    width_proximity_threshold: 0.5
 
 
 
