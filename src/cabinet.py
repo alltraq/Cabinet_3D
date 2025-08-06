@@ -34,21 +34,39 @@ class Cabinet:
                 follow the fnc(msg, callback) scheme. See geo_cmd.Connect.send(). """
         self.id = cabinet_config['cabinet_controller_id']
         self.zone = cabinet_config['zone']
-        self.shelf_height = cabinet_config.get('shelf_height', 0.0)
-        self.shelf_offset_height = cabinet_config.get('location')[2]  # Z coordinate of the shelf
-        self.shelf_prox_shreshold = cabinet_config.get('height_proximity_threshold', 1.0)
+        self.shelf_height = float(cabinet_config.get('shelf_height', 0.0))
+        self.shelf_offset_height = 0.396 # float(cabinet_config.get('location')[2])  # Z coordinate of the shelf
+        self.shelf_prox_shreshold = float(cabinet_config.get('height_proximity_threshold', 1.0))
 
         self.send_geo_cmd = send_cmd_fnc
-        self.tags = [False] * 6 # Keeps trach of tags ids and which shelf they are on
-        self.light_switch_states = [False] * 6  # Assuming 6 shelves
+        self.tags = {num:False for num in range(1,7)} # Keeps trach of tags ids and which shelf they are on}
+        self.light_switch_states = {num:False for num in range(1,7)}  # Assuming 6 shelves
         self.light_switch_events = [] # Indicates new light switch event and correlated shelf
+        # self.light_switch_events.append(1)
+        self.store_light_switch_state(3, True)
 
     def store_light_switch_state(self, shelf_index, state):
         """Update the light switch state for a given shelf."""
-        if 0 <= shelf_index < len(self.light_switch_states):
-            self.light_switch_states[shelf_index] = state == 1
-            self.light_switch_events.append(shelf_index)
+        if 1 <= shelf_index < len(self.light_switch_states):
+            self.light_switch_states[shelf_index] = state
+            self.update_light_switch_events(shelf_index, state)
             # send light shelf led msg
+
+    def update_light_switch_events(self, shelf_index, state):
+        """ if a new event, add to the list. If a light switch goes off, remove it from the list. "
+        """
+        if shelf_index < 1 or shelf_index > 6:
+            return
+        
+        if state:
+            if shelf_index not in self.light_switch_events:
+                self.light_switch_events.append(shelf_index)
+        else:
+            pass
+            # try:
+            #     self.light_switch_events.remove(shelf_index)
+            # except ValueError:
+            #     pass
 
     def get_light_switch_state(self, shelf_index) -> bool:
         return self.light_switch_states[shelf_index]
@@ -73,7 +91,7 @@ class Cabinet:
                      'Sensor Type': str, 'shelf number': int, 'state':bool] """
         shelf_number = int(msg.fmsg[4])
         sw_state = int(msg.fmsg[5])
-        self.store_light_switch_state(shelf_number-1, sw_state)
+        self.store_light_switch_state(shelf_number, sw_state)
 
         
         logger.info(msg.msg)
@@ -88,17 +106,39 @@ class Cabinet:
             raise ValueError("Shelf number must be between 1 and 6.")
         middle_of_shelf_1 = self.shelf_offset_height + (self.shelf_height / 2)
         return middle_of_shelf_1 + ((shelf_num-1) * self.shelf_height)
+    
+    def get_distance_to_shelf(self, tag: TagLoc, shelf_num:int) -> float:
+        """ Get the vertical distance from the tag to the shelf. """
+        if shelf_num < 1 or shelf_num > 6:
+            raise ValueError("Shelf number must be between 1 and 6.")
+        tag_z = tag.get_latest_location()[2]
+        shelf_z = self.get_shelf_height(shelf_num)
+        logger.debug(f"Cabinet {self.id} shelf {shelf_num} height: {shelf_z:.2f}, tag {tag.tagid} height: {tag_z:.2f}")
+        return abs(tag_z - shelf_z)
 
     def new_tag_loc(self, tag: TagLoc):
         """Process a location monitoring message."""
         if len(self.light_switch_events) == 0:
             return
         
+        logger.debug(f"Cabinet {self.id} processing new tag location for tag {tag.tagid}.")
+        
         tagid = tag.tagid
         if tagid in self.tags:
             return
         
-        tag_loc = tag.get_latest_location() # returns (x, y, z)
+        logger.debug(f"Tag {tagid} is not currently assigned to any shelf in cabinet {self.id}.")
+        
+        for shelf in self.light_switch_events:
+            logger.debug(f"Checking shelf {shelf} for tag {tagid}. Light switch state: {self.get_light_switch_state(shelf)}")
+            if self.get_light_switch_state(shelf):
+                dist = self.get_distance_to_shelf(tag, shelf)
+                logger.debug(f"Checking shelf {shelf} for tag {tagid}. Distance to shelf: {dist:.2f}")
+                if dist <= self.shelf_prox_shreshold:
+                    logger.info(f"Tag {tagid} is near shelf {shelf} (dist={dist:.2f}).")
+                    self.tags[shelf] = tagid
+                    self.send_shelf_led_msg(shelf, LED_BLUE)
+                    self.light_switch_events.remove(shelf)
         
 
     def _init_states(self):
