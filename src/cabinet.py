@@ -35,12 +35,11 @@ class Cabinet:
                 follow the fnc(msg, callback) scheme. See geo_cmd.Connect.send(). """
         self.id = cabinet_config['cabinet_controller_id']
         self.zone = cabinet_config['zone']
+
         self.send_geo_cmd = send_cmd_fnc
-        self.tags = [False] * 6
+        self.tags = [False] * 6 # Keeps trach of tags ids and which shelf they are on
         self.light_switch_states = [False] * 6  # Assuming 6 shelves
-        self.light_switch_events = 0 # Indicates new light switch event
-
-
+        self.light_switch_events = 0 # Indicates new light switch event and correlated shelf
 
     def store_light_switch_state(self, shelf_index, state):
         """Update the light switch state for a given shelf."""
@@ -48,6 +47,13 @@ class Cabinet:
             self.light_switch_states[shelf_index] = state == 1
             self.light_switch_events |= (1 << shelf_index)
             # send light shelf led msg
+
+    def get_light_switch_state(self, shelf_index) -> bool:
+        return self.light_switch_states[shelf_index]
+    
+    def get_tags(self):
+        """ Get the tags on the shelves. """
+        return self.tags
 
     
     def send_shelf_led_msg(self, shelf_num:int, leds:int):
