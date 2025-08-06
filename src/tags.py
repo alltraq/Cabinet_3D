@@ -29,12 +29,12 @@ class TagLoc():
                           'prirng':float, 'x':float, 'y':float, 'z':float]
         """
         try:
-            self.ts.append(int(msg[0]))
-            self.x.append(float(msg[13]))
-            self.y.append(float(msg[14]))
-            self.z.append(float(msg[15]))
-            self.zone.append(msg[4])
-            self.motion.append(bool(msg[3]))
+            self.ts.append(int(msg.fmsg[0]))
+            self.x.append(float(msg.fmsg[13]))
+            self.y.append(float(msg.fmsg[14]))
+            self.z.append(float(msg.fmsg[15]))
+            self.zone.append(msg.fmsg[4])
+            self.motion.append(bool(msg.fmsg[3]))
         except Exception as e:
             print("TagLoc.add_locmon exception:", e)
 
