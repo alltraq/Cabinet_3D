@@ -24,12 +24,14 @@ class Zones():
         self.last_zone: dict[int, str] = {}  # Last zone tag was in
 
     def add_locmon(self, msg:Geomsg):
-        """ add a locmon message to Tags.  Update zones with tagid. 
-         tag message format: ['ts':int, 'msgtype':str, 'tagid':int, 'name':str, /
-                          'zone':str, 'isalert':int, 'boundary':int, 'motion':int, /
-                          'isloc':int, 'rngcnt':int, 'rngerr':float, 'prircv':int, /
-                          'prirng':float, 'x':float, 'y':float, 'z':float] """
+        """ add a locmon message to Tags.  Update zones with tagid. """
         tagloc = self.tags.add_locmon(msg)  # Add to Tags object
+        self.update_zones(tagloc)
+        self.inform_cabinet(tagloc)  # Inform the cabinet object of the tag's latest location
+
+    def add_lctn(self, msg:Geomsg):
+        """ add a lctn message to Tags.  Update zones with tagid. """
+        tagloc = self.tags.add_lctn(msg)  # Add to Tags object
         self.update_zones(tagloc)
         self.inform_cabinet(tagloc)  # Inform the cabinet object of the tag's latest location
         

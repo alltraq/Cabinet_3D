@@ -2,6 +2,8 @@
 
 from net.geo_packet_handler import Geomsg
 from collections import deque
+import logging
+
 
 MAX_LOC_BUFF_LEN = 10
 
@@ -34,7 +36,25 @@ class TagLoc():
             self.y.append(float(msg.fmsg[14]))
             self.z.append(float(msg.fmsg[15]))
             self.zone.append(msg.fmsg[4])
-            self.motion.append(bool(msg.fmsg[3]))
+            self.motion.append(bool(msg.fmsg[7]))
+        except Exception as e:
+            logging.exception("TagLoc.add_locmon exception:", e)
+
+    def add_lctn(self, msg:Geomsg):
+        """ add LCTN message to queue.
+           LCTN message format: ['ts':int, 'msgtype':str, 'tagid':int, 'tagname':str,
+                         'zonename':str, 'inmotion':int, 'isalert':int, 
+                         'rngcnt':int, 'rngerr':float, 'prircv':int, 'prirng':float,
+                         'locx':float, 'locy':float, 'locz':float]
+        """
+        
+        try:
+            self.ts.append(int(msg.fmsg[0]))
+            self.x.append(float(msg.fmsg[11]))
+            self.y.append(float(msg.fmsg[12]))
+            self.z.append(float(msg.fmsg[13]))
+            self.zone.append(msg.fmsg[4])
+            self.motion.append(bool(msg.fmsg[5]))
         except Exception as e:
             print("TagLoc.add_locmon exception:", e)
 
@@ -75,6 +95,16 @@ class Tags():
             self.tags[tagid] = TagLoc(tagid)
         self.tags[tagid].add_locmon(msg)
         return self.tags[tagid]
+
+    def add_lctn(self, msg:Geomsg) -> TagLoc:
+        """ add a lctn message to the appropriate tag.  Create a new TagLoc
+            object if the tag does not exist. """
+        tagid = int(msg.fmsg[2])  # tagid is at index 2
+        if tagid not in self.tags:
+            self.tags[tagid] = TagLoc(tagid)
+        self.tags[tagid].add_lctn(msg)
+        return self.tags[tagid]
+
 
     # def __setitem__(self, tagid:int, tagloc:TagLoc):
     #     """ Allow Tags object to be used like a dictionary """

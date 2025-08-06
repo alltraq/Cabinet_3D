@@ -1,10 +1,11 @@
 from net import rcvr_parser, geo_packet_handler, tnttcp
 import logging, logging.config, json, pathlib, time
-import msg_handler, cabinet
+import msg_handler
 from geotraqr import geo_cmd
 import yaml
 from typing import Callable
 from zones import Zones
+from cabinet import Cabinet, Cluster
 
 geo_cmd_connection = None
 
@@ -71,17 +72,18 @@ def main():
     handler = msg_handler.MsgHandler()
 
     # create Cluster for Cabinet objects
-    cluster = cabinet.Cluster(config, geo_cmd_send)
+    cluster = Cluster(config, geo_cmd_send)
 
 
     handler.register_sens0_type("LTSW", cluster.add_ltsw_msg)
 
-    zones = zones.Zones()
+    zones = Zones()
     cabs = cluster.cabinets
     for zone_name, cabinet in cabs.items():
         zones.add_cabinet(cabinet, zone_name)
     
-    handler.register_msg_type("LOCMON", zones.add_locmon)
+    # handler.register_msg_type("LOCMON", zones.add_locmon)
+    handler.register_msg_type("LCTN", zones.add_lctn)
     
 
     # # Start the receiver parser
