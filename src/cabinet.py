@@ -22,7 +22,6 @@ LED_WHITE = 7
 
 
 logger = logging.getLogger("app"+".__name__")
-# logger = logging.getLogger("__name__")
 logger.propagate = True
 
 
@@ -35,17 +34,20 @@ class Cabinet:
                 follow the fnc(msg, callback) scheme. See geo_cmd.Connect.send(). """
         self.id = cabinet_config['cabinet_controller_id']
         self.zone = cabinet_config['zone']
+        self.shelf_height = cabinet_config.get('shelf_height', 0.0)
+        self.shelf_offset_height = cabinet_config.get('location')[2]  # Z coordinate of the shelf
+        self.shelf_prox_shreshold = cabinet_config.get('height_proximity_threshold', 1.0)
 
         self.send_geo_cmd = send_cmd_fnc
         self.tags = [False] * 6 # Keeps trach of tags ids and which shelf they are on
         self.light_switch_states = [False] * 6  # Assuming 6 shelves
-        self.light_switch_events = 0 # Indicates new light switch event and correlated shelf
+        self.light_switch_events = [] # Indicates new light switch event and correlated shelf
 
     def store_light_switch_state(self, shelf_index, state):
         """Update the light switch state for a given shelf."""
         if 0 <= shelf_index < len(self.light_switch_states):
             self.light_switch_states[shelf_index] = state == 1
-            self.light_switch_events |= (1 << shelf_index)
+            self.light_switch_events.append(shelf_index)
             # send light shelf led msg
 
     def get_light_switch_state(self, shelf_index) -> bool:
@@ -80,24 +82,24 @@ class Cabinet:
             color = LED_RED        
         self.send_shelf_led_msg(shelf_number, color)
 
-    def add_locmon_msg(self, msg: Geomsg):
+    def get_shelf_height(self, shelf_num:int) -> float:
+        """ Get the height of the shelf. """
+        if shelf_num < 1 or shelf_num > 6:
+            raise ValueError("Shelf number must be between 1 and 6.")
+        middle_of_shelf_1 = self.shelf_offset_height + (self.shelf_height / 2)
+        return middle_of_shelf_1 + ((shelf_num-1) * self.shelf_height)
+
+    def new_tag_loc(self, tag: TagLoc):
         """Process a location monitoring message."""
-        if self.light_switch_events == 0:
+        if len(self.light_switch_events) == 0:
             return
         
-        tag_id = int(msg.fmsg[2])
-        tag_loc = Tags().get_tag(tag_id)
-        if tag_loc:
-            tag_loc.add_locmon(msg)
-            # Check if the tag is in the cabinet's zone and height
-            if tag_loc.get_latest_zone() == self.zone:
-                # Check if the tag is on a shelf
-                shelf_index = self.get_shelf_index(tag_loc)
-                if shelf_index is not None:
-                    self.tags[shelf_index] = True
-                    # If the light switch for that shelf is active, turn on the light
-                    if self.light_switch_states[shelf_index]:
-                        self.light_switch_events |= (1 << shelf_index)
+        tagid = tag.tagid
+        if tagid in self.tags:
+            return
+        
+        tag_loc = tag.get_latest_location() # returns (x, y, z)
+        
 
     def _init_states(self):
         self._request_switch_states()
@@ -156,20 +158,22 @@ class Cluster:
         Route LTSW message to the appropriate cabinet. """
     def __init__(self, config: dict, send_fnc: Callable[[str], None]):
         """ create a Cabinet object for each cabinet in the config """
-        self.cabinets = {}
-        self.ltsw_path = {}
+        self.cabinets: dict[int, Cabinet] = {}
         for cabinet in config.get('cabinets', []):
             cabinet_id = cabinet.get('cabinet_controller_id', None)
             self.cabinets[cabinet_id] = Cabinet(cabinet, send_cmd_fnc=send_fnc)
-            self.ltsw_path[cabinet_id] = self.cabinets[cabinet_id].add_ltsw_msg
 
     def add_ltsw_msg(self, msg: Geomsg):
         """ Add a light switch message to the appropriate cabinet. """
         logger.debug(f"Received message: {msg.msg}")
         cabinet_id = int(msg.fmsg[2])
-        self.ltsw_path[cabinet_id](msg)
+        self.cabinets[cabinet_id].add_ltsw_msg(msg)
 
 
     def get_cabinet(self, cabinet_id: int) -> Cabinet:
         """ Get a Cabinet object by its ID. """
         return self.cabinets.get(cabinet_id, None)
+    
+    def get_cabinets(self) -> dict:
+        """ Get all Cabinet objects. """
+        return self.cabinets
