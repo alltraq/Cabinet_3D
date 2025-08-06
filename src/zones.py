@@ -54,6 +54,7 @@ class Zones():
         else:
             self.zones[last_zone].remove(tag)
             self.zones[zone].append(tag)
+        self.last_zone[tag.tagid] = zone
 
     def get_tags_in_zone(self, zone_name:str):
         """ Get all tags in a specific zone """
