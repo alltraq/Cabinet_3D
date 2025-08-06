@@ -1,6 +1,6 @@
 # Shelf configuration
 cabinets:
-  - cabinet_controller_id: 25000
+  - cabinet_controller_id: 25002
     # Middle of bottom shelf. Coordinates in feet
     location: (87.42, 13.0, 0.396)
     zone: "Zone1"
