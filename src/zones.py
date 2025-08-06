@@ -50,12 +50,16 @@ class Zones():
         zone = tag.get_latest_zone()
         if zone not in self.zones:
             self.zones[zone] = []
+            logger.debug(f"Created new zone: {zone}")
         last_zone = self.last_zone.get(tag.tagid, None)
         if last_zone is None:
             self.zones[zone].append(tag)
+            logger.debug(f"Tag {tag.tagid} added to zone {zone}")
         else:
             self.zones[last_zone].remove(tag)
             self.zones[zone].append(tag)
+            if zone != last_zone:
+                logger.debug(f"Tag {tag.tagid} moved from zone {last_zone} to {zone}")  
         self.last_zone[tag.tagid] = zone
 
     def get_tags_in_zone(self, zone_name:str):
