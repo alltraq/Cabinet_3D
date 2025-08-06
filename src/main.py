@@ -3,6 +3,7 @@ import logging, logging.config, json, pathlib, time
 import msg_handler, cabinet
 from geotraqr import geo_cmd
 import yaml
+from typing import Callable
 
 
 geo_cmd_connection = None
@@ -22,13 +23,13 @@ def setup_logging():
         config = json.load(f_in)
     logging.config.dictConfig(config)
 
-def geo_cmd_send(msg):
+def geo_cmd_send(msg, callback:Callable[[geo_cmd.Message], None]=None):
     """Send a command to the geotraqr."""
     logger.info(f"Sending command: {msg}")
     if geo_cmd_connection is None:
         logger.error("Geo command connection is not established.")
     else:
-        geo_cmd_connection.send(msg)
+        geo_cmd_connection.send(msg, callback_fnc=callback)
 
 
 def run(geo_conn, cmd_conn:geo_cmd.Connect, msg_handler:msg_handler.MsgHandler):
