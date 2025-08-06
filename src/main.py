@@ -79,8 +79,8 @@ def main():
 
     zones = Zones()
     cabs = cluster.cabinets
-    for zone_name, cabinet in cabs.items():
-        zones.add_cabinet(cabinet, zone_name)
+    for cab_id, cabinet in cabs.items():
+        zones.add_cabinet(cabinet, cabinet.zone)
     
     # handler.register_msg_type("LOCMON", zones.add_locmon)
     handler.register_msg_type("LCTN", zones.add_lctn)
