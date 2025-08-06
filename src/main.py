@@ -4,7 +4,7 @@ import msg_handler, cabinet
 from geotraqr import geo_cmd
 import yaml
 from typing import Callable
-
+from zones import Zones
 
 geo_cmd_connection = None
 
@@ -73,7 +73,15 @@ def main():
     # create Cluster for Cabinet objects
     cluster = cabinet.Cluster(config, geo_cmd_send)
 
+
     handler.register_sens0_type("LTSW", cluster.add_ltsw_msg)
+
+    zones = zones.Zones()
+    cabs = cluster.cabinets
+    for zone_name, cabinet in cabs.items():
+        zones.add_cabinet(cabinet, zone_name)
+    
+    handler.register_msg_type("LOCMON", zones.add_locmon)
     
 
     # # Start the receiver parser
@@ -83,12 +91,14 @@ def main():
     # cabinet_controller = cabinet.Cabinet(1, tnttcp.TNTTCPConnection(), "zone1")
 
     
-    parser = rcvr_parser.RcvrParser(geo_packet_handler.Geomsg)
 
+    # Get network configuration
     net_conf = config['network']
     geo_address = net_conf['geotraqr_address']
     geo_cmd_port = net_conf['geo_cmd_port']
     geo_data_port = net_conf['geo_data_port']
+    
+    parser = rcvr_parser.RcvrParser(geo_packet_handler.Geomsg)
     
     # Main loop
     while True:
