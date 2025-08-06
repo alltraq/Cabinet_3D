@@ -1,36 +1,11 @@
-""" Create an manage Tag class """
+""" Create and manage Tag class """
 
 from net.geo_packet_handler import Geomsg
 from collections import deque
 
 MAX_LOC_BUFF_LEN = 10
 
-class Tags():
-    """ Class to manage tags.  Holds a dictionary of TagLoc objects.
-        Each TagLoc object buffers location data for a tag. """
-    def __init__(self):
-        self.tags = {}
 
-    def add_locmon(self, msg:Geomsg):
-        """ add a locmon message to the appropriate tag.  Create a new TagLoc
-            object if the tag does not exist. 
-         tag message format: ['ts':int, 'msgtype':str, 'tagid':int, 'name':str, /
-                          'zone':str, 'isalert':int, 'baoundary':int, 'motion':int, /
-                          'isloc':int, 'rngcnt':int, 'rngerr':float, 'prircv':int, /
-                          'prirng':float, 'x':float, 'y':float, 'z':float] """
-        tagid = msg.fmsg[2]  # tagid is at index 2
-        if tagid not in self.tags:
-            self.add_tag(tagid)
-        self.tags[tagid].add_locmon(msg)
-
-    def add_tag(self, tagid:int):
-        """ add a new tag to the tags dict """
-        if tagid not in self.tags:
-            self.tags[tagid] = TagLoc(tagid)
-
-    def get_tag(self, tagid:int) -> 'TagLoc':
-        """ get a TagLoc object for the given tagid """
-        return self.tags.get(tagid, None)
 
 
 class TagLoc():
@@ -47,7 +22,12 @@ class TagLoc():
 
 
     def add_locmon(self, msg:Geomsg):
-        """ add lomon msg to que """
+        """ add lomon msg to que. 
+         tag message format: ['ts':int, 'msgtype':str, 'tagid':int, 'name':str, /
+                          'zone':str, 'isalert':int, 'boundary':int, 'motion':int, /
+                          'isloc':int, 'rngcnt':int, 'rngerr':float, 'prircv':int, /
+                          'prirng':float, 'x':float, 'y':float, 'z':float]
+        """
         try:
             self.ts.append(int(msg[0]))
             self.x.append(float(msg[13]))
@@ -80,3 +60,41 @@ class TagLoc():
 
     def get_latest_zone(self):
         return self.zone[-1] if len(self.zone) > 0 else None
+
+class Tags():
+    """ Class to manage tags.  Holds a dictionary of TagLoc objects.
+        Each TagLoc object buffers location data for a tag. """
+    def __init__(self):
+        self.tags = {}
+
+    def add_locmon(self, msg:Geomsg) -> TagLoc:
+        """ add a locmon message to the appropriate tag.  Create a new TagLoc
+            object if the tag does not exist. """
+        tagid = int(msg.fmsg[2])  # tagid is at index 2
+        if tagid not in self.tags:
+            self.tags[tagid] = TagLoc(tagid)
+        self.tags[tagid].add_locmon(msg)
+        return self.tags[tagid]
+
+    # def __setitem__(self, tagid:int, tagloc:TagLoc):
+    #     """ Allow Tags object to be used like a dictionary """
+    #     self.tags[tagid] = tagloc
+
+    def __getitem__(self, tagid:int) -> TagLoc:
+        """ Allow Tags object to be used like a dictionary """
+        return self.tags.get(tagid, None)
+    
+    def __contains__(self, tagid:int) -> bool:
+        """ Check if a tag exists in the Tags object """
+        return tagid in self.tags
+
+    # def add_tag(self, tagid:int):
+    #     """ add a new tag to the tags dict """
+    #     if tagid not in self.tags:
+    #         self.tags[tagid] = TagLoc(tagid)
+        
+
+    def get_tag(self, tagid:int) -> 'TagLoc':
+        """ get a TagLoc object for the given tagid """
+        return self.tags.get(tagid, None)
+    
