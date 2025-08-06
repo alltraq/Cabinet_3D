@@ -33,6 +33,9 @@ led_timeout: 5
 
 # Network settings
 network:
-  geotraqr_address: 10.10.10.172
-  geo_data_port: 50361
-  geo_cmd_port: 50362
+  #geotraqr_address: 10.10.10.172
+  # geo_data_port: 50361
+  # geo_cmd_port: 50362
+  geotraqr_address: 25.100.38.191
+  geo_data_port: 50531
+  geo_cmd_port: 50532
