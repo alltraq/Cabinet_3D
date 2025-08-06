@@ -10,6 +10,7 @@ from tags import Tags, TagLoc, MAX_LOC_BUFF_LEN
 from net.geo_packet_handler import Geomsg
 import logging
 from typing import Callable
+from geotraqr import geo_cmd
 
 
 SHELF_PARAM_BASE = 100
@@ -22,14 +23,19 @@ LED_WHITE = 7
 
 logger = logging.getLogger("app"+".__name__")
 # logger = logging.getLogger("__name__")
-logger.propagate = False
+logger.propagate = True
 
 
 class Cabinet:
-    def __init__(self, cabinet_config: dict, send_fnc: Callable[[str], None]): #controller_id: int, connection, zone: str):
+    def __init__(self, cabinet_config: dict, send_cmd_fnc: Callable[[str], None]):
+        """ Initialize the Cabinet object with its configuration.
+            Args:
+                cabinet_config: dict containing cabinet configuration
+                send_cmd_fnc: Function to call to send the geotraqr a message. It should
+                follow the fnc(msg, callback) scheme. See geo_cmd.Connect.send(). """
         self.id = cabinet_config['cabinet_controller_id']
         self.zone = cabinet_config['zone']
-        self.cmd_conn = send_fnc
+        self.send_geo_cmd = send_cmd_fnc
         self.tags = [False] * 6
         self.light_switch_states = [False] * 6  # Assuming 6 shelves
         self.light_switch_events = 0 # Indicates new light switch event
@@ -45,15 +51,17 @@ class Cabinet:
 
     
     def send_shelf_led_msg(self, shelf_num:int, leds:int):
+        """Send a message to set the LED state for a shelf.
+           shelf_num: 1-6, leds: bitmask of LED states"""
         param = SHELF_PARAM_BASE+shelf_num
         msg=f'RCVPRM, {self.id}, {param}={leds}\r\n'
-        self.cmd_conn(msg) # add a callback
+        self.send_geo_cmd(msg) # add a callback
         logger.info(f"Send: {msg}")
 
     
     def add_ltsw_msg(self, msg: Geomsg):
         """Process a light switch message.
-        msg format: ['ts':int, 'msgtype':str, 'Controller ID':int, 
+        LTSW Geomsg format: ['ts':int, 'msgtype':str, 'Controller ID':int, 
                      'Sensor Type': str, 'shelf number': int, 'state':bool] """
         shelf_number = int(msg.fmsg[4])
         sw_state = int(msg.fmsg[5])
@@ -85,6 +93,57 @@ class Cabinet:
                     if self.light_switch_states[shelf_index]:
                         self.light_switch_events |= (1 << shelf_index)
 
+    def _init_states(self):
+        self._request_switch_states()
+        self._request_led_states()
+        self.initialized = False
+
+    def _request_switch_states(self):
+        msg = f"RCVCMD, {self.dev_id}, GETRCVP, 97\r\n"
+        logger.info(f"Send: {msg}")
+        self.cmd_conn(msg, self._parse_switch_state_response)
+
+    def _request_led_states(self):
+        msg = f"RCVCMD, {self.dev_id}, GETRCVP, 101, 102, 103, 104, 105, 106\r\n"
+        logger.info(f"Send: {msg}")
+        self.cmd_conn(msg, self._parse_led_param_response)
+
+
+    def _parse_led_param_response(self, msg:geo_cmd.Message):
+        """ Callback for RCVCMD 101, . """
+        if msg.err == "ERROR":
+            return
+        
+        logger.debug(f"_parse_led_param_response. msg.rspns: {msg.rspns}")
+        try:
+            vals = msg.rspns.replace(" ", "").split(",")
+        except Exception as e:
+            logger.error('_parse_led_patam_response exception. ', e)
+
+        for idx, val in enumerate(vals):
+            try:
+                val=int(val)
+                self.set_sw_state(idx+1, val)
+            except:
+                logger.exception(f'Exception parsing led state response')
+                return
+        self.initialized = True
+
+    def _parse_switch_state_response(self, msg:geo_cmd.Message):
+        """ Callback for RCVCMD 97, switch states. """
+        if msg.err == "ERROR":
+            
+            return
+        
+        logger.debug(f"_parse_switch_state_response. msg.rspns: {msg.rspns}")
+
+        try:
+            val=int(msg.rspns)
+        except:
+            logger.exception(f'Exception parsing switch state response')
+            return
+        self.sw_states = val
+        self.initialized = True
 
 class Cluster:
     """ A Cluster of Cabinet objects.  It is used to manage multiple cabinets.
@@ -95,11 +154,12 @@ class Cluster:
         self.ltsw_path = {}
         for cabinet in config.get('cabinets', []):
             cabinet_id = cabinet.get('cabinet_controller_id', None)
-            self.cabinets[cabinet_id] = Cabinet(cabinet, send_fnc=send_fnc)
+            self.cabinets[cabinet_id] = Cabinet(cabinet, send_cmd_fnc=send_fnc)
             self.ltsw_path[cabinet_id] = self.cabinets[cabinet_id].add_ltsw_msg
 
     def add_ltsw_msg(self, msg: Geomsg):
         """ Add a light switch message to the appropriate cabinet. """
+        logger.debug(f"Received message: {msg.msg}")
         cabinet_id = int(msg.fmsg[2])
         self.ltsw_path[cabinet_id](msg)
 

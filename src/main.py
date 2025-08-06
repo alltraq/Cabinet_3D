@@ -5,6 +5,8 @@ from geotraqr import geo_cmd
 import yaml
 
 
+geo_cmd_connection = None
+
 
 # Not sure what the use of this is yet.
 # Answer - the "app" logger can be configured seperately
@@ -20,9 +22,43 @@ def setup_logging():
         config = json.load(f_in)
     logging.config.dictConfig(config)
 
-    
+def geo_cmd_send(msg):
+    """Send a command to the geotraqr."""
+    logger.info(f"Sending command: {msg}")
+    if geo_cmd_connection is None:
+        logger.error("Geo command connection is not established.")
+    else:
+        geo_cmd_connection.send(msg)
+
+
+def run(geo_conn, cmd_conn:geo_cmd.Connect, msg_handler:msg_handler.MsgHandler):
+    """
+    """
+
+    while(1):
+        
+        if geo_conn.is_connected():
+            msg = geo_conn.rcv()
+        else: # if its not connected just return and let context mangager deal
+            return
+        
+        if msg is not None:
+            msg_handler.handle_message(msg)
+        else:
+            time.sleep(0.1)
+
+        if not cmd_conn.is_connected():
+            return
+        try:
+            msg = cmd_conn.rcv()
+        except geo_cmd.GeoError as err:
+            logger.error(f"{err}")
+            
+
 def main():
     """ Main function to start the application. """
+    global geo_cmd_connection
+
     setup_logging()
     logger.info("Starting Cabinet 3D Application")
 
@@ -31,8 +67,12 @@ def main():
     with open(config_file) as f_in:
         config = yaml.safe_load(f_in)
 
+    handler = msg_handler.MsgHandler()
 
     # create Cluster for Cabinet objects
+    cluster = cabinet.Cluster(config, geo_cmd_send)
+
+    handler.register_sens0_type("LTSW", cluster.add_ltsw_msg)
     
 
     # # Start the receiver parser
@@ -40,12 +80,35 @@ def main():
 
     # # Start the cabinet controller
     # cabinet_controller = cabinet.Cabinet(1, tnttcp.TNTTCPConnection(), "zone1")
-    
-    # # Main loop
-    # while True:
-    #     time.sleep(1)  # Simulate doing work
-    #     logger.debug("Running main loop...")
 
+    
+    parser = rcvr_parser.RcvrParser(geo_packet_handler.Geomsg)
+
+    net_conf = config['network']
+    geo_address = net_conf['geotraqr_address']
+    geo_cmd_port = net_conf['geo_cmd_port']
+    geo_data_port = net_conf['geo_data_port']
+    
+    # Main loop
+    while True:
+        try:
+            with tnttcp.client_connect(geo_address, geo_data_port, parser=parser) as geo_out, \
+                    geo_cmd.Connect(geo_address, geo_cmd_port) as cmd_conn:
+                logger.info("Connected to GeoTraqr")
+                geo_cmd_connection = cmd_conn
+                run(geo_out, cmd_conn, handler)
+
+        except TimeoutError:
+            logger.error("Connection Timed Out")
+            time.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Closing connection.")
+            return
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
+            time.sleep(5)
+        finally:
+            geo_cmd_connection = None
 
 if __name__ == "__main__":
     main()
