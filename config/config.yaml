@@ -9,7 +9,6 @@ cabinets:
     height_proximity_threshold: 1.5
     width_proximity_threshold: 0.5
   - cabinet_controller_id: 25001
-    # Bottom of bottom shelf. Coordinates in feet
     # Middle of bottom shelf. Coordinates in feet
     location: (93.0, 13.0, 0.396)
     zone: "Zone2"
