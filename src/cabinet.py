@@ -50,9 +50,16 @@ class Cabinet:
         """Update the light switch state for a given shelf."""
         if shelf_index < 1 or shelf_index > 6:
             return
-        
+        self.remove_tag(state, shelf_index)
         self.light_switch_states[shelf_index] = state
         self.update_light_switch_events(shelf_index, state)
+
+    def remove_tag(self, ltsw_state, shelf_num):
+        try:
+            if not ltsw_state:
+                del(self.tags[shelf_num])
+        except KeyError:
+            pass
 
         
     def update_light_switch_events(self, shelf_index, state):
@@ -94,8 +101,6 @@ class Cabinet:
         shelf_number = int(msg.fmsg[4])
         sw_state = int(msg.fmsg[5])
         self.store_light_switch_state(shelf_number, sw_state)
-
-        
         logger.info(msg.msg)
         color = LED_OFF
         if sw_state == 1:
@@ -134,7 +139,7 @@ class Cabinet:
         logger.debug(f"Cabinet {self.id} processing new tag location for tag {tag.tagid}.")
         
         tagid = tag.tagid
-        if tagid in self.tags:
+        if tagid in self.tags.values():
             return
         
         logger.debug(f"Tag {tagid} is not currently assigned to any shelf in cabinet {self.id}.")
