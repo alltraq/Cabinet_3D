@@ -23,6 +23,7 @@ LED_WHITE = 7
 
 logger = logging.getLogger("app"+".__name__")
 logger.propagate = True
+logger.setLevel(logging.INFO)
 
 
 class Cabinet:
@@ -43,15 +44,17 @@ class Cabinet:
         self.light_switch_states = {num:False for num in range(1,7)}  # Assuming 6 shelves
         self.light_switch_events = [] # Indicates new light switch event and correlated shelf
         # self.light_switch_events.append(1)
-        self.store_light_switch_state(3, True)
+        # self.store_light_switch_state(6, True)
 
     def store_light_switch_state(self, shelf_index, state):
         """Update the light switch state for a given shelf."""
-        if 1 <= shelf_index < len(self.light_switch_states):
-            self.light_switch_states[shelf_index] = state
-            self.update_light_switch_events(shelf_index, state)
-            # send light shelf led msg
+        if shelf_index < 1 or shelf_index > 6:
+            return
+        
+        self.light_switch_states[shelf_index] = state
+        self.update_light_switch_events(shelf_index, state)
 
+        
     def update_light_switch_events(self, shelf_index, state):
         """ if a new event, add to the list. If a light switch goes off, remove it from the list. "
         """
@@ -62,11 +65,10 @@ class Cabinet:
             if shelf_index not in self.light_switch_events:
                 self.light_switch_events.append(shelf_index)
         else:
-            pass
-            # try:
-            #     self.light_switch_events.remove(shelf_index)
-            # except ValueError:
-            #     pass
+            try:
+                self.light_switch_events.remove(shelf_index)
+            except ValueError:
+                pass
 
     def get_light_switch_state(self, shelf_index) -> bool:
         return self.light_switch_states[shelf_index]
@@ -104,8 +106,8 @@ class Cabinet:
         """ Get the height of the shelf. """
         if shelf_num < 1 or shelf_num > 6:
             raise ValueError("Shelf number must be between 1 and 6.")
-        middle_of_shelf_1 = self.shelf_offset_height + (self.shelf_height / 2)
-        return middle_of_shelf_1 + ((shelf_num-1) * self.shelf_height)
+        middle_of_shelf_1 = self.shelf_offset_height + (self.shelf_height / 2) + self.shelf_height * 5
+        return middle_of_shelf_1 - ((shelf_num-1) * self.shelf_height)
     
     def get_distance_to_shelf(self, tag: TagLoc, shelf_num:int) -> float:
         """ Get the vertical distance from the tag to the shelf. """
@@ -115,6 +117,14 @@ class Cabinet:
         shelf_z = self.get_shelf_height(shelf_num)
         logger.debug(f"Cabinet {self.id} shelf {shelf_num} height: {shelf_z:.2f}, tag {tag.tagid} height: {tag_z:.2f}")
         return abs(tag_z - shelf_z)
+    
+    def print_tag_shelfs(self):
+        """ Print the tags on the shelves. """
+        for shelf, tagid in self.tags.items():
+            if tagid:
+                logger.info(f"Cabinet {self.id} Shelf {shelf}: Tag {tagid}")
+            else:
+                logger.info(f"Cabinet {self.id} Shelf {shelf}: No Tag")
 
     def new_tag_loc(self, tag: TagLoc):
         """Process a location monitoring message."""
@@ -139,6 +149,7 @@ class Cabinet:
                     self.tags[shelf] = tagid
                     self.send_shelf_led_msg(shelf, LED_BLUE)
                     self.light_switch_events.remove(shelf)
+                    self.print_tag_shelfs()
         
 
     def _init_states(self):
