@@ -15,7 +15,9 @@ geo_cmd_connection = None
 # from the root logger.  Different handlers and filters
 # can be applied.
 logger = logging.getLogger("app")
-logger.propagate = False
+logger.propagate = True
+logger.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 def setup_logging():
     """ if config is stored as JSON file """

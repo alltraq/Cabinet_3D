@@ -48,7 +48,7 @@
             ]
         },
         "app": {
-            "level": "DEBUG",
+            "level": "INFO",
             "handlers": [
                 "stdout",
                 "rotatingFile"
