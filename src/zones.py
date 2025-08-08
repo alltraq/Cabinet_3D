@@ -10,9 +10,9 @@ from typing import Callable
 from cabinet import Cabinet
 
 
-logger = logging.getLogger("app"+".__name__")
-logger.propagate = True
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("app."+__name__)
+# logger.propagate = True
+# logger.setLevel(logging.INFO)
 
 class Zones():
     """ Class to manage zones.  Holds a dictionary of TagLoc objects.

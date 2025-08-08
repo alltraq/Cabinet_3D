@@ -9,15 +9,15 @@ from cabinet import Cabinet, Cluster
 
 geo_cmd_connection = None
 
-
+# LOGGING_LEVEL = logging.WARNING  # Default logging level
 # Not sure what the use of this is yet.
 # Answer - the "app" logger can be configured seperately
 # from the root logger.  Different handlers and filters
 # can be applied.
 logger = logging.getLogger("app")
 logger.propagate = True
-logger.setLevel(logging.INFO)
-logging.getLogger().setLevel(logging.INFO)
+# logger.setLevel(logging.ERROR)
+# logging.getLogger().setLevel(logging.ERROR)  # Root logger level
 
 def setup_logging():
     """ if config is stored as JSON file """

@@ -22,18 +22,19 @@
     "handlers": {
         "stdout": {
             "class": "logging.StreamHandler",
+            "level": "WARNING",
             "formatter": "simple",
             "stream": "ext://sys.stdout"
         },
         "file": {
             "class": "logging.FileHandler",
-            "level": "DEBUG",
+            "level": "WARNING",
             "formatter": "detailed",
             "filename": "log/my_app.log"
         },
         "rotatingFile": {
             "class": "logging.handlers.RotatingFileHandler",
-            "level": "DEBUG",
+            "level": "WARNING",
             "formatter": "geo",
             "filename": "log/my_app.log",
             "maxBytes": 100000000,
@@ -42,13 +43,13 @@
     }, 
     "loggers": {
         "root": {
-            "level": "INFO",
+            "level": "WARNING",
             "handlers": [
                 "rotatingFile"
             ]
         },
         "app": {
-            "level": "DEBUG",
+            "level": "WARNING",
             "handlers": [
                 "stdout",
                 "rotatingFile"
