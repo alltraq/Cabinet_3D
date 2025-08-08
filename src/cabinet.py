@@ -11,6 +11,12 @@ from net.geo_packet_handler import Geomsg
 import logging
 from typing import Callable
 from geotraqr import geo_cmd
+import socketio
+
+sio = socketio.Client()
+# sio.connect('http://localhost:5000')
+sio.connect('http://10.10.55.74:5000')
+
 
 
 SHELF_PARAM_BASE = 100
@@ -21,9 +27,14 @@ LED_BLUE = 4
 LED_WHITE = 7
 
 
-logger = logging.getLogger("app"+".__name__")
-logger.propagate = True
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("app."+__name__)
+# logger.propagate = True
+# logger.setLevel(logging.INFO)
+
+def update_shelf(shelf_num:int, tagid:int):
+    """ Update the shelf state in the UI. """
+    logger.debug(f"Updating shelf {shelf_num} with tag {tagid}")
+    sio.emit('box_update', {'box_id': tagid, 'shelf': shelf_num})
 
 
 class Cabinet:
@@ -54,12 +65,6 @@ class Cabinet:
         self.light_switch_states[shelf_index] = state
         self.update_light_switch_events(shelf_index, state)
 
-    def remove_tag(self, ltsw_state, shelf_num):
-        try:
-            if not ltsw_state:
-                del(self.tags[shelf_num])
-        except KeyError:
-            pass
 
         
     def update_light_switch_events(self, shelf_index, state):
@@ -125,11 +130,37 @@ class Cabinet:
     
     def print_tag_shelfs(self):
         """ Print the tags on the shelves. """
-        for shelf, tagid in self.tags.items():
+        for _ in range(10):
+            print()
+        print(f"Cabinet {self.id} Tag assignments:")
+        for shelf in range(1,7):
+            tagid = self.tags.get(shelf, None)
             if tagid:
-                logger.info(f"Cabinet {self.id} Shelf {shelf}: Tag {tagid}")
+                print(f"Shelf {shelf}: Tag {tagid}")
             else:
-                logger.info(f"Cabinet {self.id} Shelf {shelf}: No Tag")
+                print(f"Shelf {shelf}:")
+
+    def update_tags(self, shelf_num:int, tagid:int, action:int=1):
+        """ Update the tags on the shelves. """
+        if shelf_num < 0 or shelf_num > 6:
+            raise ValueError("Shelf number must be between 1 and 6.")
+        if action == 1:
+            self.tags[shelf_num] = tagid
+            update_shelf(shelf_num, tagid)
+        elif action == 0:
+            if tagid in self.tags.values():
+                del self.tags[shelf_num]
+                update_shelf(0, tagid)
+        self.print_tag_shelfs()
+    
+    def remove_tag(self, ltsw_state, shelf_num):
+        try:
+            if not ltsw_state:
+                tagid = self.tags[shelf_num]
+                self.update_tags(shelf_num, tagid, action=0)
+                self.print_tag_shelfs()
+        except KeyError:
+            pass
 
     def new_tag_loc(self, tag: TagLoc):
         """Process a location monitoring message."""
@@ -151,7 +182,7 @@ class Cabinet:
                 logger.debug(f"Checking shelf {shelf} for tag {tagid}. Distance to shelf: {dist:.2f}")
                 if dist <= self.shelf_prox_shreshold:
                     logger.info(f"Tag {tagid} is near shelf {shelf} (dist={dist:.2f}).")
-                    self.tags[shelf] = tagid
+                    self.update_tags(shelf, tagid, action=1)
                     self.send_shelf_led_msg(shelf, LED_BLUE)
                     self.light_switch_events.remove(shelf)
                     self.print_tag_shelfs()
